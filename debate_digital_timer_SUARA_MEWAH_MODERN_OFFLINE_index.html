@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debate Digital Timer Offline - SYNERGY Smart System</title>
+  <meta name="theme-color" content="#07111f" />
+  <style>
+    :root {
+      --bg-a: #06101f;
+      --bg-b: #0a1f3a;
+      --bg-c: #1b1348;
+      --card: rgba(10, 22, 42, 0.78);
+      --card-strong: rgba(9, 20, 39, 0.92);
+      --line: rgba(255, 255, 255, 0.13);
+      --text: #f8fbff;
+      --muted: #9fb3c8;
+      --primary: #23d5ff;
+      --primary-2: #28ffbf;
+      --warning: #ffc857;
+      --danger: #ff3b63;
+      --danger-2: #ff174f;
+      --ok: #28ffbf;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --focus: 0 0 0 4px rgba(35, 213, 255, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(35, 213, 255, 0.22), transparent 30%),
+        radial-gradient(circle at 78% 20%, rgba(255, 59, 99, 0.17), transparent 26%),
+        radial-gradient(circle at 50% 110%, rgba(40, 255, 191, 0.13), transparent 35%),
+        linear-gradient(135deg, var(--bg-a), var(--bg-b) 48%, var(--bg-c));
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, black, transparent 78%);
+      z-index: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: var(--text);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: none;
+      box-shadow: var(--focus);
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(14px, 2vw, 24px);
+      padding: clamp(16px, 2.5vw, 34px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(248, 251, 255, 0.92);
+      font-weight: 800;
+      font-size: clamp(12px, 1.4vw, 15px);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: #06101f;
+      box-shadow: 0 0 30px rgba(35, 213, 255, 0.38);
+      font-weight: 950;
+      letter-spacing: -0.06em;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(248, 251, 255, 0.88);
+      font-weight: 800;
+      font-size: 13px;
+      backdrop-filter: blur(12px);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--muted);
+      box-shadow: 0 0 18px currentColor;
+    }
+
+    .status-ready .status-dot { background: var(--primary); color: var(--primary); }
+    .status-running .status-dot { background: var(--ok); color: var(--ok); }
+    .status-paused .status-dot { background: var(--warning); color: var(--warning); }
+    .status-timeout .status-dot { background: var(--danger); color: var(--danger); }
+
+    .main-grid {
+      display: block;
+      width: min(1500px, 100%);
+      margin: 0 auto;
+    }
+
+    .main-grid.settings-collapsed {
+      display: block;
+      width: min(1500px, 100%);
+      margin: 0 auto;
+    }
+
+    .main-grid.settings-collapsed .timer-card {
+      min-height: min(800px, calc(100vh - 158px));
+    }
+
+    .timer-card,
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.045)), var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .timer-card {
+      width: min(1500px, 100%);
+      min-height: min(760px, calc(100vh - 158px));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      padding: clamp(18px, 4vw, 54px);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .timer-inner {
+      width: min(1180px, 100%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .timer-card.force-center-screen {
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .timer-card::before {
+      content: "";
+      position: absolute;
+      inset: -45% -18% auto;
+      height: 65%;
+      background: radial-gradient(circle, rgba(35, 213, 255, 0.24), transparent 64%);
+      transform: rotate(-8deg);
+      pointer-events: none;
+    }
+
+    .timer-card::after {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 999px;
+      right: -250px;
+      bottom: -290px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 80px rgba(40, 255, 191, 0.09);
+      pointer-events: none;
+    }
+
+    .timer-inner {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      width: min(1180px, 100%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .stage-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: clamp(16px, 2vw, 28px);
+      padding: 11px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(35, 213, 255, 0.27);
+      background: rgba(35, 213, 255, 0.1);
+      color: rgba(248, 251, 255, 0.85);
+      font-size: clamp(12px, 1.4vw, 15px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .display-title {
+      margin: 0;
+      line-height: 1.05;
+      font-size: clamp(26px, 4vw, 70px);
+      font-weight: 1000;
+      letter-spacing: -0.05em;
+      text-wrap: balance;
+      text-shadow: 0 0 36px rgba(35, 213, 255, 0.18);
+    }
+
+    .timer-display {
+      margin: clamp(18px, 3vw, 42px) 0 clamp(14px, 2.5vw, 30px);
+      font-size: clamp(76px, 17vw, 248px);
+      line-height: 0.88;
+      font-weight: 1000;
+      letter-spacing: -0.09em;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(180deg, #ffffff, #d5f9ff 45%, var(--primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 34px rgba(35, 213, 255, 0.42));
+      transition: filter 220ms ease, transform 220ms ease;
+    }
+
+    .normal .timer-display {
+      background-image: linear-gradient(180deg, #ffffff, #d5f9ff 45%, var(--primary));
+    }
+
+    .warning .timer-display {
+      background-image: linear-gradient(180deg, #ffffff, #fff0bd 45%, var(--warning));
+      filter: drop-shadow(0 0 36px rgba(255, 200, 87, 0.48));
+    }
+
+    .danger .timer-display {
+      background-image: linear-gradient(180deg, #ffffff, #ffd5dd 38%, var(--danger));
+      filter: drop-shadow(0 0 38px rgba(255, 59, 99, 0.55));
+      animation: pulseDanger 1s ease-in-out infinite;
+    }
+
+    .timeout .timer-display {
+      background-image: linear-gradient(180deg, #ffffff, #ffc7d3 32%, var(--danger-2));
+      filter: drop-shadow(0 0 46px rgba(255, 23, 79, 0.82));
+      animation: timeoutShake 0.62s ease-in-out 2, pulseDanger 1s ease-in-out infinite;
+    }
+
+    .message {
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto;
+      color: rgba(248, 251, 255, 0.88);
+      font-size: clamp(17px, 2.2vw, 34px);
+      font-weight: 950;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .warning .message {
+      color: var(--warning);
+      text-shadow: 0 0 24px rgba(255, 200, 87, 0.36);
+    }
+
+    .danger .message,
+    .timeout .message {
+      color: var(--danger);
+      text-shadow: 0 0 26px rgba(255, 59, 99, 0.44);
+    }
+
+    .progress-wrap {
+      width: min(860px, 100%);
+      height: 18px;
+      margin: clamp(20px, 3vw, 42px) auto 0;
+      border-radius: 999px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary-2), var(--primary));
+      box-shadow: 0 0 24px rgba(35, 213, 255, 0.36);
+      transform-origin: left;
+      transition: width 180ms linear, background 220ms ease;
+    }
+
+    .warning .progress-bar {
+      background: linear-gradient(90deg, #ffdf7b, var(--warning));
+      box-shadow: 0 0 26px rgba(255, 200, 87, 0.46);
+    }
+
+    .danger .progress-bar,
+    .timeout .progress-bar {
+      background: linear-gradient(90deg, #ff8aa1, var(--danger));
+      box-shadow: 0 0 30px rgba(255, 59, 99, 0.56);
+    }
+
+    .quick-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: clamp(20px, 3vw, 34px);
+    }
+
+    .btn {
+      min-height: 48px;
+      padding: 13px 18px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      transition: transform 170ms ease, background 170ms ease, border 170ms ease, opacity 170ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.13);
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #1dccff, #22ffc4);
+      color: #06101f;
+      box-shadow: 0 18px 44px rgba(35, 213, 255, 0.24);
+    }
+
+    .btn.warning {
+      background: linear-gradient(135deg, #ffde77, #ff9d42);
+      color: #211204;
+    }
+
+    .btn.danger-btn {
+      background: linear-gradient(135deg, #ff4770, #ff174f);
+      color: white;
+    }
+
+    .btn.ghost {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .btn.small {
+      min-height: 40px;
+      padding: 10px 12px;
+      border-radius: 13px;
+      font-size: 13px;
+    }
+
+    .btn[disabled] {
+      cursor: not-allowed;
+      opacity: 0.48;
+      transform: none;
+    }
+
+    .panel {
+      border-radius: var(--radius-xl);
+      padding: clamp(16px, 2.2vw, 24px);
+      align-self: stretch;
+      overflow: hidden;
+    }
+
+    .settings-toggle {
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(135deg, rgba(35, 213, 255, 0.18), rgba(40, 255, 191, 0.12));
+      color: var(--text);
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+      transition: transform 170ms ease, background 170ms ease, border 170ms ease;
+    }
+
+    .settings-toggle:hover {
+      transform: translateY(-2px);
+      border-color: rgba(35, 213, 255, 0.42);
+      background: linear-gradient(135deg, rgba(35, 213, 255, 0.27), rgba(40, 255, 191, 0.18));
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .panel-close {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(248, 251, 255, 0.92);
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 500;
+      transition: transform 170ms ease, background 170ms ease;
+    }
+
+    .panel-close:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .panel-overlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 19;
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease;
+    }
+
+    .panel-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: clamp(12px, 2vw, 22px);
+      right: clamp(12px, 2vw, 22px);
+      bottom: clamp(12px, 2vw, 22px);
+      width: min(460px, calc(100vw - 24px));
+      max-width: none;
+      z-index: 20;
+      overflow-y: auto;
+      transform: translateX(calc(100% + 34px));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 230ms ease, transform 230ms ease;
+    }
+
+    .settings-panel.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-panel:not(.open) {
+      transform: translateX(calc(100% + 34px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panel-title {
+      margin: 0 0 6px;
+      font-size: clamp(21px, 2vw, 30px);
+      font-weight: 1000;
+      letter-spacing: -0.04em;
+    }
+
+    .panel-subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: rgba(248, 251, 255, 0.78);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      min-height: 50px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--text);
+      padding: 13px 14px;
+      outline: none;
+      transition: border 170ms ease, box-shadow 170ms ease, background 170ms ease;
+    }
+
+    .input:hover,
+    .select:hover {
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(0, 0, 0, 0.29);
+    }
+
+    .time-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .preset-btn.active {
+      border-color: rgba(35, 213, 255, 0.55);
+      box-shadow: 0 0 0 3px rgba(35, 213, 255, 0.12);
+    }
+
+    .tool-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .alarm-grid,
+    .voice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .hint-box {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      background: rgba(255, 255, 255, 0.055);
+      color: rgba(248, 251, 255, 0.78);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .kbd {
+      display: inline-flex;
+      padding: 2px 7px;
+      margin: 0 2px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(248, 251, 255, 0.9);
+      font-weight: 800;
+    }
+
+    .footer {
+      text-align: center;
+      color: rgba(248, 251, 255, 0.55);
+      font-size: 12px;
+      letter-spacing: 0.03em;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 10;
+      transform: translateX(-50%) translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 13px 16px;
+      border-radius: 999px;
+      color: #07111f;
+      background: linear-gradient(135deg, #ffffff, #c7fbff);
+      box-shadow: 0 16px 46px rgba(0, 0, 0, 0.35);
+      font-weight: 900;
+      transition: opacity 200ms ease, transform 200ms ease;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes pulseDanger {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.025); }
+    }
+
+    @keyframes timeoutShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    @media (max-width: 1020px) {
+      .main-grid,
+      .main-grid.settings-collapsed {
+        display: block;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .timer-card {
+        min-height: auto;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .settings-panel {
+        top: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: min(430px, calc(100vw - 24px));
+      }
+
+      .panel-overlay {
+        background: rgba(0, 0, 0, 0.48);
+        backdrop-filter: blur(4px);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 12px;
+      }
+
+      .topbar {
+        justify-content: center;
+      }
+
+      .status-pill {
+        justify-content: center;
+      }
+
+      .settings-toggle {
+        flex: 1;
+        min-width: 160px;
+      }
+
+      .timer-card,
+      .panel {
+        border-radius: 24px;
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .quick-actions .btn.primary {
+        grid-column: span 2;
+      }
+
+      .presets {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .tool-row,
+      .alarm-grid,
+      .voice-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .timer-display {
+        letter-spacing: -0.08em;
+      }
+
+      .toast {
+        width: calc(100% - 24px);
+        text-align: center;
+        white-space: normal;
+      }
+    }
+
+    @media (display-mode: fullscreen) {
+      .app {
+        padding: clamp(22px, 3vw, 42px);
+      }
+
+      .panel,
+      .panel-overlay,
+      .topbar,
+      .footer {
+        display: none;
+      }
+
+      .main-grid {
+        display: block;
+        width: 100%;
+      }
+
+      .timer-card {
+        min-height: calc(100vh - 84px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand" aria-label="Debate Timer System">
+        <div class="brand-mark">DT</div>
+        <div>
+          <div>Debate Timer System</div>
+          <div style="font-size:11px;color:rgba(248,251,255,.52);letter-spacing:.14em;margin-top:2px;">Professional Digital Countdown • OFFLINE READY</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="status-pill status-ready" id="statusPill">
+          <span class="status-dot"></span>
+          <span id="statusText">SIAP</span>
+        </div>
+        <button class="settings-toggle" id="settingsToggleBtn" type="button" aria-expanded="true" aria-controls="settingsPanel">
+          ⚙️ PENGATURAN
+        </button>
+      </div>
+    </header>
+
+    <div class="panel-overlay" id="panelOverlay"></div>
+
+    <main class="main-grid">
+      <section class="timer-card force-center-screen normal" id="timerCard" aria-live="polite">
+        <div class="timer-inner">
+          <div class="stage-label" id="stageLabel">⚡ LIVE DEBATE TIMER</div>
+          <h1 class="display-title" id="displayTitle">WAKTU DEBAT PESERTA</h1>
+          <div class="timer-display" id="timerDisplay">03:00</div>
+          <div class="message" id="messageText">SIAP DIMULAI</div>
+
+          <div class="progress-wrap" aria-label="Progress waktu">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+
+          <div class="quick-actions">
+            <button class="btn primary" id="startBtn">START</button>
+            <button class="btn warning" id="pauseBtn" disabled>PAUSE</button>
+            <button class="btn ghost" id="resetBtn">RESET</button>
+            <button class="btn ghost" id="fullscreenBtn">FULLSCREEN</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel settings-panel open" id="settingsPanel">
+        <div class="panel-head">
+          <h2 class="panel-title">Pengaturan Timer</h2>
+          <button class="panel-close" id="settingsCloseBtn" type="button" aria-label="Tutup pengaturan">×</button>
+        </div>
+        <p class="panel-subtitle">
+          Atur judul, durasi waktu, suara peringatan, dan mode layar penuh untuk kebutuhan debat atau presentasi.
+        </p>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="titleInput">Tulisan di Atas Timer</label>
+            <input class="input" id="titleInput" type="text" value="WAKTU DEBAT PESERTA" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="quickTitle">Pilihan Judul Cepat</label>
+            <select class="select" id="quickTitle">
+              <option value="">Pilih judul cepat...</option>
+              <option>WAKTU DEBAT PESERTA</option>
+              <option>WAKTU ARGUMEN PEMBUKA</option>
+              <option>WAKTU SANGGAHAN</option>
+              <option>WAKTU JAWABAN</option>
+              <option>WAKTU KESIMPULAN</option>
+              <option>TIME OUT</option>
+            </select>
+          </div>
+
+          <div class="time-inputs">
+            <div class="field">
+              <label for="minutesInput">Menit</label>
+              <input class="input" id="minutesInput" type="number" min="0" max="999" value="3" inputmode="numeric" />
+            </div>
+
+            <div class="field">
+              <label for="secondsInput">Detik</label>
+              <input class="input" id="secondsInput" type="number" min="0" max="59" value="0" inputmode="numeric" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Preset Waktu</label>
+            <div class="presets" id="presetButtons">
+              <button class="btn small preset-btn" data-min="0" data-sec="30">30 Detik</button>
+              <button class="btn small preset-btn" data-min="1" data-sec="0">1 Menit</button>
+              <button class="btn small preset-btn" data-min="2" data-sec="0">2 Menit</button>
+              <button class="btn small preset-btn active" data-min="3" data-sec="0">3 Menit</button>
+              <button class="btn small preset-btn" data-min="5" data-sec="0">5 Menit</button>
+              <button class="btn small preset-btn" data-min="10" data-sec="0">10 Menit</button>
+            </div>
+          </div>
+
+          <button class="btn primary" id="setTimeBtn">SET WAKTU</button>
+
+          <div class="tool-row">
+            <button class="btn ghost" id="soundToggleBtn">SUARA: AKTIF</button>
+            <button class="btn ghost" id="testSoundBtn">TES BUNYI</button>
+          </div>
+
+          <div class="alarm-grid">
+            <div class="field">
+              <label for="warningSoundSelect">Bunyi Peringatan</label>
+              <select class="select" id="warningSoundSelect">
+                <option value="premiumchime">Premium Chime</option>
+                <option value="crystal">Crystal Alert</option>
+                <option value="futuristic">Futuristic Pulse</option>
+                <option value="cinematic">Cinematic Rise</option>
+                <option value="luxurygong">Luxury Gong</option>
+                <option value="beep">Beep Tajam</option>
+                <option value="longbeep">Beep Panjang</option>
+                <option value="alarmbell">Bel Alarm</option>
+                <option value="school">Bel Sekolah</option>
+                <option value="siren">Sirine Naik-Turun</option>
+                <option value="urgent">Alarm Darurat</option>
+                <option value="whistle">Peluit Tajam</option>
+                <option value="horn">Klakson Pendek</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="timeoutSoundSelect">Bunyi TIME OUT</label>
+              <select class="select" id="timeoutSoundSelect">
+                <option value="premiumchime">Premium Chime</option>
+                <option value="cinematic">Cinematic Rise</option>
+                <option value="luxurygong">Luxury Gong</option>
+                <option value="futuristic">Futuristic Pulse</option>
+                <option value="crystal">Crystal Alert</option>
+                <option value="siren">Sirine Naik-Turun</option>
+                <option value="alarmbell">Bel Alarm</option>
+                <option value="longbeep">Beep Panjang</option>
+                <option value="urgent">Alarm Darurat</option>
+                <option value="school">Bel Sekolah</option>
+                <option value="beep">Beep Tajam</option>
+                <option value="whistle">Peluit Tajam</option>
+                <option value="horn">Klakson Panjang</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="tool-row">
+            <button class="btn ghost" id="testWarningSoundBtn">TES PERINGATAN</button>
+            <button class="btn ghost" id="testTimeoutSoundBtn">TES TIME OUT</button>
+          </div>
+
+          <button class="btn ghost" id="testPremiumSoundBtn">TES PAKET SUARA MEWAH</button>
+
+          <div class="field">
+            <label>Suara Manusia / Voice Announcement</label>
+            <div class="tool-row">
+              <button class="btn ghost" id="voiceToggleBtn">VOICE: AKTIF</button>
+              <button class="btn ghost" id="testVoiceBtn">TES VOICE</button>
+            </div>
+          </div>
+
+          <div class="voice-grid">
+            <div class="field">
+              <label for="startVoiceInput">Kalimat Saat Mulai</label>
+              <input class="input" id="startVoiceInput" type="text" value="Bersiap, waktu dimulai" autocomplete="off" />
+            </div>
+
+            <div class="field">
+              <label for="timeoutVoiceInput">Kalimat Saat Habis</label>
+              <input class="input" id="timeoutVoiceInput" type="text" value="Waktu Anda telah habis" autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="tool-row">
+            <button class="btn ghost" id="addMinuteBtn">+ 1 MENIT</button>
+            <button class="btn ghost" id="minusTenBtn">- 10 DETIK</button>
+          </div>
+        </div>
+
+        <div class="hint-box">
+          Pintasan keyboard: <span class="kbd">Spasi</span> Start/Pause,
+          <span class="kbd">R</span> Reset, <span class="kbd">F</span> Fullscreen, <span class="kbd">M</span> Toggle pengaturan.
+          Suara browser biasanya aktif setelah tombol diklik pertama kali.
+          <br><br>
+          Timer dipaksa tetap center walaupun menu pengaturan dibuka atau ditutup.<br><br>
+          Paket suara mewah tersedia: Premium Chime, Crystal Alert, Futuristic Pulse, Cinematic Rise, dan Luxury Gong. Semua dibuat langsung dari Web Audio API, tetap offline tanpa file audio eksternal.<br><br>
+          Aplikasi ini sepenuhnya offline: tidak memakai internet, CDN, gambar eksternal, font eksternal, atau file audio eksternal. Suara manusia memakai voice bawaan browser/perangkat; jika voice tidak tersedia, alarm nyaring tetap berjalan. Saat START diklik: voice manusia berbicara lebih dulu, setelah voice selesai beep panjang berbunyi, dan pada saat beep panjang berbunyi timer langsung berjalan.
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      Design by SYNERGY Smart System @BBR_2026
+    </footer>
+  </div>
+
+  <div class="toast" id="toast">Pengaturan disimpan</div>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "bbr_debate_timer_v1";
+
+    const els = {
+      app: document.getElementById("app"),
+      timerCard: document.getElementById("timerCard"),
+      displayTitle: document.getElementById("displayTitle"),
+      stageLabel: document.getElementById("stageLabel"),
+      timerDisplay: document.getElementById("timerDisplay"),
+      messageText: document.getElementById("messageText"),
+      progressBar: document.getElementById("progressBar"),
+      statusPill: document.getElementById("statusPill"),
+      statusText: document.getElementById("statusText"),
+      mainGrid: document.querySelector(".main-grid"),
+      settingsPanel: document.getElementById("settingsPanel"),
+      settingsToggleBtn: document.getElementById("settingsToggleBtn"),
+      settingsCloseBtn: document.getElementById("settingsCloseBtn"),
+      panelOverlay: document.getElementById("panelOverlay"),
+      titleInput: document.getElementById("titleInput"),
+      quickTitle: document.getElementById("quickTitle"),
+      minutesInput: document.getElementById("minutesInput"),
+      secondsInput: document.getElementById("secondsInput"),
+      presetButtons: document.getElementById("presetButtons"),
+      setTimeBtn: document.getElementById("setTimeBtn"),
+      startBtn: document.getElementById("startBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      fullscreenBtn: document.getElementById("fullscreenBtn"),
+      soundToggleBtn: document.getElementById("soundToggleBtn"),
+      testSoundBtn: document.getElementById("testSoundBtn"),
+      warningSoundSelect: document.getElementById("warningSoundSelect"),
+      timeoutSoundSelect: document.getElementById("timeoutSoundSelect"),
+      testWarningSoundBtn: document.getElementById("testWarningSoundBtn"),
+      testTimeoutSoundBtn: document.getElementById("testTimeoutSoundBtn"),
+      testPremiumSoundBtn: document.getElementById("testPremiumSoundBtn"),
+      voiceToggleBtn: document.getElementById("voiceToggleBtn"),
+      testVoiceBtn: document.getElementById("testVoiceBtn"),
+      startVoiceInput: document.getElementById("startVoiceInput"),
+      timeoutVoiceInput: document.getElementById("timeoutVoiceInput"),
+      addMinuteBtn: document.getElementById("addMinuteBtn"),
+      minusTenBtn: document.getElementById("minusTenBtn"),
+      toast: document.getElementById("toast")
+    };
+
+    const defaultState = {
+      title: "WAKTU DEBAT PESERTA",
+      minutes: 3,
+      seconds: 0,
+      soundEnabled: true,
+      warningSound: "beep",
+      timeoutSound: "siren",
+      voiceEnabled: true,
+      startVoiceText: "Bersiap, waktu dimulai",
+      timeoutVoiceText: "Waktu Anda telah habis",
+      settingsOpen: true
+    };
+
+    let state = {
+      initialSeconds: 180,
+      remainingSeconds: 180,
+      running: false,
+      startingSequence: false,
+      paused: false,
+      timeout: false,
+      endTime: 0,
+      rafId: null,
+      soundEnabled: true,
+      audioCtx: null,
+      warned: new Set()
+    };
+
+    function loadSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        return { ...defaultState, ...saved };
+      } catch {
+        return { ...defaultState };
+      }
+    }
+
+    function saveSettings() {
+      const payload = {
+        title: els.titleInput.value.trim() || defaultState.title,
+        minutes: toSafeNumber(els.minutesInput.value, 0, 999),
+        seconds: toSafeNumber(els.secondsInput.value, 0, 59),
+        soundEnabled: state.soundEnabled,
+        warningSound: state.warningSound,
+        timeoutSound: state.timeoutSound,
+        voiceEnabled: state.voiceEnabled,
+        startVoiceText: els.startVoiceInput.value.trim() || "Bersiap, waktu dimulai",
+        timeoutVoiceText: els.timeoutVoiceInput.value.trim() || "Waktu Anda telah habis",
+        settingsOpen: els.settingsPanel.classList.contains("open")
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function toSafeNumber(value, min, max) {
+      const number = Math.floor(Number(value));
+      if (!Number.isFinite(number)) return min;
+      return Math.max(min, Math.min(max, number));
+    }
+
+    function getInputSeconds() {
+      const minutes = toSafeNumber(els.minutesInput.value, 0, 999);
+      const seconds = toSafeNumber(els.secondsInput.value, 0, 59);
+      els.minutesInput.value = minutes;
+      els.secondsInput.value = seconds;
+      return (minutes * 60) + seconds;
+    }
+
+    function formatTime(totalSeconds) {
+      const safe = Math.max(0, Math.floor(totalSeconds));
+      const minutes = Math.floor(safe / 60);
+      const seconds = safe % 60;
+      return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+    }
+
+    function setStatus(type, text) {
+      els.statusPill.className = "status-pill status-" + type;
+      els.statusText.textContent = text;
+    }
+
+    function showToast(text) {
+      els.toast.textContent = text;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 1500);
+    }
+
+    function updateTitle() {
+      const cleanTitle = els.titleInput.value.trim() || defaultState.title;
+      els.displayTitle.textContent = cleanTitle;
+      saveSettings();
+    }
+
+    function updatePresetActive() {
+      const minutes = toSafeNumber(els.minutesInput.value, 0, 999);
+      const seconds = toSafeNumber(els.secondsInput.value, 0, 59);
+      const buttons = els.presetButtons.querySelectorAll(".preset-btn");
+      buttons.forEach((button) => {
+        const isActive = Number(button.dataset.min) === minutes && Number(button.dataset.sec) === seconds;
+        button.classList.toggle("active", isActive);
+      });
+    }
+
+    function updateDisplay() {
+      const remaining = Math.max(0, state.remainingSeconds);
+      const initial = Math.max(1, state.initialSeconds);
+      const progress = Math.max(0, Math.min(100, (remaining / initial) * 100));
+
+      els.timerDisplay.textContent = formatTime(remaining);
+      els.progressBar.style.width = progress + "%";
+
+      els.timerCard.classList.remove("normal", "warning", "danger", "timeout");
+
+      if (state.timeout) {
+        els.timerCard.classList.add("timeout");
+        els.messageText.textContent = "TIME OUT";
+        els.stageLabel.textContent = "⛔ WAKTU HABIS";
+        return;
+      }
+
+      if (remaining <= 10 && remaining > 0) {
+        els.timerCard.classList.add("danger");
+        els.messageText.textContent = "WAKTU KRITIS";
+        els.stageLabel.textContent = "🔥 10 DETIK TERAKHIR";
+      } else if (remaining <= 30 && remaining > 0) {
+        els.timerCard.classList.add("warning");
+        els.messageText.textContent = "WAKTU HAMPIR HABIS";
+        els.stageLabel.textContent = "⚠️ PERINGATAN WAKTU";
+      } else {
+        els.timerCard.classList.add("normal");
+        if (state.running) {
+          els.messageText.textContent = "WAKTU BERJALAN";
+          els.stageLabel.textContent = "⚡ LIVE DEBATE TIMER";
+        } else if (state.paused) {
+          els.messageText.textContent = "DIJEDA";
+          els.stageLabel.textContent = "⏸ TIMER PAUSE";
+        } else {
+          els.messageText.textContent = "SIAP DIMULAI";
+          els.stageLabel.textContent = "⚡ LIVE DEBATE TIMER";
+        }
+      }
+    }
+
+    function setTimeFromInputs({ show = true } = {}) {
+      const total = getInputSeconds();
+
+      if (total <= 0) {
+        state.initialSeconds = 0;
+        state.remainingSeconds = 0;
+        state.running = false;
+        state.paused = false;
+        state.timeout = false;
+        state.warned.clear();
+        setStatus("ready", "ATUR WAKTU");
+        updateButtons();
+        updateDisplay();
+        saveSettings();
+        if (show) showToast("Masukkan waktu lebih dari 00:00");
+        return false;
+      }
+
+      stopLoop();
+      state.startingSequence = false;
+      state.initialSeconds = total;
+      state.remainingSeconds = total;
+      state.running = false;
+      state.startingSequence = false;
+      state.paused = false;
+      state.timeout = false;
+      state.endTime = 0;
+      state.warned.clear();
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      setStatus("ready", "SIAP");
+      updateButtons();
+      updateDisplay();
+      updatePresetActive();
+      saveSettings();
+
+      if (show) showToast("Waktu disetel ke " + formatTime(total));
+      return true;
+    }
+
+    function updateButtons() {
+      if (state.startingSequence) {
+        els.startBtn.textContent = "BERSIAP...";
+        els.startBtn.disabled = true;
+        els.pauseBtn.disabled = true;
+        els.pauseBtn.textContent = "PAUSE";
+      } else if (state.running) {
+        els.startBtn.textContent = "BERJALAN";
+        els.startBtn.disabled = true;
+        els.pauseBtn.disabled = false;
+        els.pauseBtn.textContent = "PAUSE";
+      } else if (state.paused) {
+        els.startBtn.textContent = "LANJUTKAN";
+        els.startBtn.disabled = false;
+        els.pauseBtn.disabled = true;
+        els.pauseBtn.textContent = "PAUSE";
+      } else {
+        els.startBtn.textContent = state.timeout ? "RESET DULU" : "START";
+        els.startBtn.disabled = state.timeout || state.remainingSeconds <= 0;
+        els.pauseBtn.disabled = true;
+        els.pauseBtn.textContent = "PAUSE";
+      }
+
+      els.soundToggleBtn.textContent = "SUARA: " + (state.soundEnabled ? "AKTIF" : "MATI");
+      els.voiceToggleBtn.textContent = "VOICE: " + (state.voiceEnabled ? "AKTIF" : "MATI");
+    }
+
+    function ensureAudio() {
+      if (!state.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+        state.audioCtx = new AudioContext();
+      }
+
+      if (state.audioCtx.state === "suspended") {
+        state.audioCtx.resume();
+      }
+
+      return state.audioCtx;
+    }
+
+    function beep({ frequency = 1200, duration = 0.18, type = "square", volume = 0.88, delay = 0, secondTone = true, slideTo = null } = {}) {
+      if (!state.soundEnabled) return;
+
+      const audio = ensureAudio();
+      if (!audio) return;
+
+      const startAt = audio.currentTime + delay;
+
+      // Bunyi dibuat keras dan nyaring memakai oscillator ganda + compressor.
+      // Tetap tanpa file audio eksternal, sehingga aplikasi ringan dan offline.
+      const compressor = audio.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-20, startAt);
+      compressor.knee.setValueAtTime(18, startAt);
+      compressor.ratio.setValueAtTime(10, startAt);
+      compressor.attack.setValueAtTime(0.001, startAt);
+      compressor.release.setValueAtTime(0.16, startAt);
+
+      const masterGain = audio.createGain();
+      const safeVolume = Math.max(0.01, Math.min(volume, 0.98));
+      masterGain.gain.setValueAtTime(0.0001, startAt);
+      masterGain.gain.exponentialRampToValueAtTime(safeVolume, startAt + 0.01);
+      masterGain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      const oscillatorA = audio.createOscillator();
+      oscillatorA.type = type;
+      oscillatorA.frequency.setValueAtTime(frequency, startAt);
+      if (slideTo) oscillatorA.frequency.exponentialRampToValueAtTime(slideTo, startAt + duration * 0.85);
+
+      const oscillatorB = audio.createOscillator();
+      oscillatorB.type = "square";
+      oscillatorB.frequency.setValueAtTime(Math.max(80, frequency * 1.5), startAt);
+      if (slideTo) oscillatorB.frequency.exponentialRampToValueAtTime(Math.max(90, slideTo * 1.35), startAt + duration * 0.85);
+
+      oscillatorA.connect(masterGain);
+      if (secondTone) oscillatorB.connect(masterGain);
+      masterGain.connect(compressor);
+      compressor.connect(audio.destination);
+
+      oscillatorA.start(startAt);
+      oscillatorA.stop(startAt + duration + 0.05);
+
+      if (secondTone) {
+        oscillatorB.start(startAt);
+        oscillatorB.stop(startAt + duration + 0.05);
+      }
+    }
+
+    function premiumTone({ frequencies = [880], duration = 0.35, volume = 0.72, delay = 0, type = "sine", shimmer = true } = {}) {
+      if (!state.soundEnabled) return;
+
+      const audio = ensureAudio();
+      if (!audio) return;
+
+      const startAt = audio.currentTime + delay;
+
+      const compressor = audio.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-22, startAt);
+      compressor.knee.setValueAtTime(20, startAt);
+      compressor.ratio.setValueAtTime(7, startAt);
+      compressor.attack.setValueAtTime(0.003, startAt);
+      compressor.release.setValueAtTime(0.22, startAt);
+
+      const master = audio.createGain();
+      master.gain.setValueAtTime(0.0001, startAt);
+      master.gain.exponentialRampToValueAtTime(Math.min(volume, 0.95), startAt + 0.018);
+      master.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      const filter = audio.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(5200, startAt);
+      filter.Q.setValueAtTime(0.8, startAt);
+
+      frequencies.forEach((freq, index) => {
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+
+        osc.type = index === 0 ? type : "triangle";
+        osc.frequency.setValueAtTime(freq, startAt);
+
+        gain.gain.setValueAtTime(1 / Math.max(1, frequencies.length), startAt);
+
+        osc.connect(gain);
+        gain.connect(filter);
+        osc.start(startAt);
+        osc.stop(startAt + duration + 0.06);
+      });
+
+      if (shimmer) {
+        const shimmerOsc = audio.createOscillator();
+        const shimmerGain = audio.createGain();
+        shimmerOsc.type = "sine";
+        shimmerOsc.frequency.setValueAtTime(Math.max(...frequencies) * 2.01, startAt);
+        shimmerGain.gain.setValueAtTime(0.13, startAt);
+        shimmerGain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration * 0.72);
+        shimmerOsc.connect(shimmerGain);
+        shimmerGain.connect(filter);
+        shimmerOsc.start(startAt);
+        shimmerOsc.stop(startAt + duration + 0.04);
+      }
+
+      filter.connect(master);
+      master.connect(compressor);
+      compressor.connect(audio.destination);
+    }
+
+    function premiumSweep({ start = 420, end = 1600, duration = 0.7, volume = 0.72, delay = 0, type = "sawtooth" } = {}) {
+      if (!state.soundEnabled) return;
+
+      const audio = ensureAudio();
+      if (!audio) return;
+
+      const startAt = audio.currentTime + delay;
+
+      const compressor = audio.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-20, startAt);
+      compressor.knee.setValueAtTime(18, startAt);
+      compressor.ratio.setValueAtTime(8, startAt);
+      compressor.attack.setValueAtTime(0.002, startAt);
+      compressor.release.setValueAtTime(0.2, startAt);
+
+      const filter = audio.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(start * 1.7, startAt);
+      filter.frequency.exponentialRampToValueAtTime(end * 1.25, startAt + duration * 0.88);
+      filter.Q.setValueAtTime(1.8, startAt);
+
+      const master = audio.createGain();
+      master.gain.setValueAtTime(0.0001, startAt);
+      master.gain.exponentialRampToValueAtTime(Math.min(volume, 0.95), startAt + 0.02);
+      master.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      const oscA = audio.createOscillator();
+      oscA.type = type;
+      oscA.frequency.setValueAtTime(start, startAt);
+      oscA.frequency.exponentialRampToValueAtTime(end, startAt + duration * 0.88);
+
+      const oscB = audio.createOscillator();
+      oscB.type = "triangle";
+      oscB.frequency.setValueAtTime(start * 1.5, startAt);
+      oscB.frequency.exponentialRampToValueAtTime(end * 1.2, startAt + duration * 0.82);
+
+      oscA.connect(filter);
+      oscB.connect(filter);
+      filter.connect(master);
+      master.connect(compressor);
+      compressor.connect(audio.destination);
+
+      oscA.start(startAt);
+      oscB.start(startAt);
+      oscA.stop(startAt + duration + 0.05);
+      oscB.stop(startAt + duration + 0.05);
+    }
+
+    function luxuryHit({ delay = 0, long = false } = {}) {
+      premiumTone({ frequencies: [220, 330, 440, 660], duration: long ? 1.55 : 0.82, volume: 0.78, delay, type: "sine", shimmer: true });
+      premiumTone({ frequencies: [880, 1320, 1760], duration: long ? 1.0 : 0.52, volume: 0.42, delay: delay + 0.08, type: "triangle", shimmer: true });
+    }
+
+
+    function playAlarm(kind = "beep", mode = "warning") {
+      const long = mode === "timeout";
+
+      if (kind === "premiumchime") {
+        // Bunyi premium: clean, elegan, modern seperti notifikasi panggung/event.
+        premiumTone({ frequencies: [784, 988, 1175], duration: long ? 0.72 : 0.42, volume: 0.74, delay: 0, type: "sine", shimmer: true });
+        premiumTone({ frequencies: [988, 1319, 1760], duration: long ? 0.86 : 0.46, volume: 0.68, delay: long ? 0.42 : 0.28, type: "triangle", shimmer: true });
+        if (long) {
+          premiumTone({ frequencies: [659, 988, 1568], duration: 1.15, volume: 0.78, delay: 0.94, type: "sine", shimmer: true });
+          premiumSweep({ start: 520, end: 1280, duration: 0.9, volume: 0.48, delay: 1.46, type: "triangle" });
+        }
+        return;
+      }
+
+      if (kind === "crystal") {
+        // Crystal Alert: tajam, jernih, mewah, tetap terdengar jelas.
+        const hits = long ? 5 : 2;
+        for (let i = 0; i < hits; i++) {
+          premiumTone({ frequencies: [1320, 1760, 2349], duration: 0.28, volume: 0.72, delay: i * 0.34, type: "sine", shimmer: true });
+          premiumTone({ frequencies: [2093, 2637], duration: 0.18, volume: 0.48, delay: i * 0.34 + 0.12, type: "triangle", shimmer: false });
+        }
+        if (long) premiumTone({ frequencies: [880, 1320, 1760, 2640], duration: 1.0, volume: 0.82, delay: hits * 0.34 + 0.16, type: "sine", shimmer: true });
+        return;
+      }
+
+      if (kind === "futuristic") {
+        // Futuristic Pulse: modern, energik, cocok untuk event debat/panggung.
+        const pulses = long ? 7 : 3;
+        for (let i = 0; i < pulses; i++) {
+          premiumSweep({ start: i % 2 ? 720 : 480, end: i % 2 ? 1550 : 1200, duration: 0.22, volume: 0.7, delay: i * 0.21, type: "sawtooth" });
+          premiumTone({ frequencies: [980, 1470], duration: 0.12, volume: 0.5, delay: i * 0.21 + 0.08, type: "square", shimmer: false });
+        }
+        if (long) premiumSweep({ start: 360, end: 1800, duration: 1.15, volume: 0.78, delay: pulses * 0.21 + 0.12, type: "sawtooth" });
+        return;
+      }
+
+      if (kind === "cinematic") {
+        // Cinematic Rise: dramatis dan mewah, cocok untuk TIME OUT.
+        premiumSweep({ start: 180, end: 980, duration: long ? 1.35 : 0.64, volume: 0.72, delay: 0, type: "sawtooth" });
+        premiumTone({ frequencies: [330, 494, 740], duration: long ? 0.95 : 0.48, volume: 0.58, delay: long ? 0.72 : 0.34, type: "triangle", shimmer: true });
+        premiumTone({ frequencies: [880, 1320, 1760], duration: long ? 1.2 : 0.52, volume: 0.74, delay: long ? 1.28 : 0.7, type: "sine", shimmer: true });
+        if (long) {
+          premiumSweep({ start: 260, end: 1500, duration: 0.9, volume: 0.62, delay: 2.1, type: "triangle" });
+          luxuryHit({ delay: 2.55, long: true });
+        }
+        return;
+      }
+
+      if (kind === "luxurygong") {
+        // Luxury Gong: dentuman elegan, berat, dan premium.
+        luxuryHit({ delay: 0, long });
+        if (long) {
+          luxuryHit({ delay: 1.05, long: true });
+          premiumTone({ frequencies: [110, 220, 330], duration: 1.4, volume: 0.76, delay: 2.1, type: "sine", shimmer: true });
+        }
+        return;
+      }
+
+      if (kind === "beep") {
+        beep({ frequency: 1450, duration: long ? 0.26 : 0.16, volume: 0.9, type: "square", delay: 0 });
+        beep({ frequency: 1750, duration: long ? 0.28 : 0.15, volume: 0.86, type: "square", delay: long ? 0.34 : 0.2 });
+        if (long) {
+          beep({ frequency: 1450, duration: 0.34, volume: 0.92, type: "square", delay: 0.72 });
+          beep({ frequency: 1900, duration: 0.42, volume: 0.95, type: "square", delay: 1.16 });
+        }
+        return;
+      }
+
+      if (kind === "longbeep") {
+        // Beep panjang: nada panjang, kuat, stabil, cocok untuk tanda waktu hampir habis.
+        beep({ frequency: 1250, duration: long ? 1.35 : 0.72, volume: 0.96, type: "square", delay: 0, secondTone: true });
+        if (long) {
+          beep({ frequency: 1050, duration: 1.15, volume: 0.98, type: "square", delay: 1.55, secondTone: true });
+          beep({ frequency: 1350, duration: 0.95, volume: 0.96, type: "square", delay: 2.9, secondTone: true });
+        }
+        return;
+      }
+
+      if (kind === "alarmbell") {
+        // Bel alarm: bunyi nyaring seperti bel peringatan, dibuat dari rangkaian nada ganda.
+        const rounds = long ? 6 : 3;
+        for (let i = 0; i < rounds; i++) {
+          beep({ frequency: 980, duration: 0.2, volume: 0.96, type: "triangle", delay: i * 0.34, slideTo: 1420, secondTone: true });
+          beep({ frequency: 1420, duration: 0.18, volume: 0.94, type: "square", delay: i * 0.34 + 0.16, slideTo: 980, secondTone: true });
+        }
+        if (long) {
+          beep({ frequency: 760, duration: 0.85, volume: 0.98, type: "sawtooth", delay: rounds * 0.34 + 0.22, slideTo: 520, secondTone: true });
+        }
+        return;
+      }
+
+      if (kind === "school") {
+        beep({ frequency: 880, duration: long ? 0.42 : 0.28, volume: 0.92, type: "triangle", delay: 0, slideTo: 1220 });
+        beep({ frequency: 660, duration: long ? 0.42 : 0.26, volume: 0.9, type: "triangle", delay: long ? 0.48 : 0.34, slideTo: 1080 });
+        if (long) {
+          beep({ frequency: 880, duration: 0.52, volume: 0.95, type: "triangle", delay: 0.96, slideTo: 1320 });
+          beep({ frequency: 660, duration: 0.62, volume: 0.95, type: "triangle", delay: 1.55, slideTo: 1100 });
+        }
+        return;
+      }
+
+      if (kind === "siren") {
+        const cycles = long ? 5 : 2;
+        for (let i = 0; i < cycles; i++) {
+          beep({ frequency: 620, duration: 0.28, volume: 0.94, type: "sawtooth", delay: i * 0.36, slideTo: 1450 });
+          beep({ frequency: 1450, duration: 0.25, volume: 0.92, type: "sawtooth", delay: i * 0.36 + 0.18, slideTo: 620 });
+        }
+        return;
+      }
+
+      if (kind === "urgent") {
+        const hits = long ? 8 : 3;
+        for (let i = 0; i < hits; i++) {
+          beep({ frequency: i % 2 ? 1180 : 760, duration: 0.16, volume: 0.96, type: "square", delay: i * 0.2 });
+        }
+        if (long) beep({ frequency: 520, duration: 0.75, volume: 0.98, type: "sawtooth", delay: hits * 0.2 + 0.12, slideTo: 420 });
+        return;
+      }
+
+      if (kind === "whistle") {
+        beep({ frequency: 1850, duration: long ? 0.38 : 0.22, volume: 0.88, type: "sine", delay: 0, slideTo: 2450 });
+        beep({ frequency: 2250, duration: long ? 0.38 : 0.2, volume: 0.86, type: "sine", delay: long ? 0.46 : 0.26, slideTo: 1700 });
+        if (long) {
+          beep({ frequency: 1900, duration: 0.46, volume: 0.9, type: "sine", delay: 0.95, slideTo: 2550 });
+          beep({ frequency: 2400, duration: 0.5, volume: 0.88, type: "sine", delay: 1.48, slideTo: 1600 });
+        }
+        return;
+      }
+
+      if (kind === "horn") {
+        beep({ frequency: 330, duration: long ? 0.55 : 0.22, volume: 0.98, type: "sawtooth", delay: 0, slideTo: 290 });
+        beep({ frequency: 390, duration: long ? 0.55 : 0.22, volume: 0.92, type: "square", delay: long ? 0.65 : 0.3, slideTo: 340 });
+        if (long) {
+          beep({ frequency: 300, duration: 0.72, volume: 0.98, type: "sawtooth", delay: 1.3, slideTo: 260 });
+        }
+        return;
+      }
+
+      beep({ frequency: 1350, duration: 0.18, volume: 0.88, type: "square" });
+    }
+
+    function warningBeep() {
+      playAlarm(state.warningSound || "beep", "warning");
+    }
+
+    function timeoutBeep() {
+      playAlarm(state.timeoutSound || "siren", "timeout");
+    }
+
+    function startLongBeep() {
+      // Beep panjang khusus setelah suara manusia selesai.
+      beep({ frequency: 1250, duration: 1.15, volume: 0.98, type: "square", delay: 0, secondTone: true });
+    }
+
+    function once(fn) {
+      let called = false;
+      return (...args) => {
+        if (called) return;
+        called = true;
+        fn(...args);
+      };
+    }
+
+    function speakVoice(text, { repeat = 1, delay = 0, onComplete = null } = {}) {
+      const cleanText = String(text || "").trim();
+      const done = once(() => {
+        if (typeof onComplete === "function") onComplete();
+      });
+
+      if (!state.voiceEnabled || !cleanText) {
+        window.setTimeout(done, delay);
+        return;
+      }
+
+      if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+        window.setTimeout(done, delay);
+        return;
+      }
+
+      window.setTimeout(() => {
+        try {
+          speechSynthesis.cancel();
+
+          const voices = speechSynthesis.getVoices ? speechSynthesis.getVoices() : [];
+          const idVoice = voices.find(v => /id|indonesia|bahasa/i.test((v.lang || "") + " " + (v.name || "")));
+
+          let index = 0;
+
+          const speakNext = () => {
+            if (index >= repeat) {
+              done();
+              return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = "id-ID";
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            if (idVoice) utterance.voice = idVoice;
+
+            let utteranceFinished = false;
+            const finishUtterance = () => {
+              if (utteranceFinished) return;
+              utteranceFinished = true;
+              index += 1;
+              window.setTimeout(speakNext, 120);
+            };
+
+            utterance.onend = finishUtterance;
+            utterance.onerror = finishUtterance;
+
+            speechSynthesis.speak(utterance);
+
+            // Fallback per kalimat jika browser tidak menembakkan onend.
+            const fallbackMs = Math.max(1400, cleanText.length * 95);
+            window.setTimeout(finishUtterance, fallbackMs);
+          };
+
+          speakNext();
+
+          // Fallback global agar timer tidak macet di "BERSIAP" pada browser tertentu.
+          const globalFallbackMs = (Math.max(1500, cleanText.length * 100) * repeat) + 1000;
+          window.setTimeout(done, globalFallbackMs);
+        } catch {
+          done();
+        }
+      }, delay);
+    }
+
+    function speakStartVoice(onComplete = null) {
+      speakVoice(els.startVoiceInput.value || state.startVoiceText || "Bersiap, waktu dimulai", { repeat: 1, onComplete });
+    }
+
+    function speakTimeoutVoice() {
+      speakVoice(els.timeoutVoiceInput.value || state.timeoutVoiceText || "Waktu Anda telah habis", { repeat: 2, delay: 250 });
+    }
+
+    function maybeWarn(remaining) {
+      const markers = [30, 10, 5, 4, 3, 2, 1];
+      if (markers.includes(remaining) && !state.warned.has(remaining)) {
+        state.warned.add(remaining);
+        warningBeep();
+      }
+    }
+
+    function beginCountdownNow() {
+      if (state.remainingSeconds <= 0) return;
+
+      state.startingSequence = false;
+      state.running = true;
+      state.paused = false;
+      state.timeout = false;
+      state.endTime = Date.now() + (state.remainingSeconds * 1000);
+      setStatus("running", "BERJALAN");
+      updateButtons();
+      updateDisplay();
+      tick();
+    }
+
+    function startTimer() {
+      ensureAudio();
+
+      if (state.startingSequence || state.running) return;
+
+      if (state.timeout) {
+        showToast("Tekan RESET sebelum mulai ulang");
+        return;
+      }
+
+      if (state.remainingSeconds <= 0) {
+        const valid = setTimeFromInputs({ show: false });
+        if (!valid) return;
+      }
+
+      // ALUR START FINAL:
+      // Klik START -> voice manusia bicara -> setelah voice selesai,
+      // beep panjang berbunyi dan countdown langsung mulai berjalan bersamaan.
+      state.startingSequence = true;
+      state.running = false;
+      state.paused = false;
+      state.timeout = false;
+      setStatus("ready", "BERSIAP");
+      els.startBtn.textContent = "BERSIAP...";
+      els.messageText.textContent = "BERSIAP, WAKTU AKAN DIMULAI";
+      els.stageLabel.textContent = "🎙 SUARA PEMBUKA";
+      updateButtons();
+      updateDisplay();
+
+      speakStartVoice(once(() => {
+        if (!state.startingSequence) return;
+
+        els.messageText.textContent = "WAKTU BERJALAN";
+        els.stageLabel.textContent = "🔔 TANDA MULAI";
+        startLongBeep();
+        beginCountdownNow();
+      }));
+    }
+
+    function pauseTimer() {
+      if (!state.running) return;
+
+      state.remainingSeconds = Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000));
+      state.running = false;
+      state.paused = true;
+      stopLoop();
+      setStatus("paused", "DIJEDA");
+      updateButtons();
+      updateDisplay();
+      showToast("Timer dijeda");
+    }
+
+    function resetTimer() {
+      stopLoop();
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      state.running = false;
+      state.startingSequence = false;
+      state.paused = false;
+      state.timeout = false;
+      state.remainingSeconds = state.initialSeconds || getInputSeconds();
+      state.warned.clear();
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      setStatus("ready", "SIAP");
+      updateButtons();
+      updateDisplay();
+      showToast("Timer direset");
+    }
+
+    function stopLoop() {
+      if (state.rafId) {
+        cancelAnimationFrame(state.rafId);
+        state.rafId = null;
+      }
+    }
+
+    function tick() {
+      if (!state.running) return;
+
+      const msLeft = state.endTime - Date.now();
+      const nextRemaining = Math.max(0, Math.ceil(msLeft / 1000));
+
+      if (nextRemaining !== state.remainingSeconds) {
+        state.remainingSeconds = nextRemaining;
+        maybeWarn(nextRemaining);
+        updateDisplay();
+      }
+
+      if (msLeft <= 0) {
+        state.remainingSeconds = 0;
+        state.running = false;
+        state.paused = false;
+        state.timeout = true;
+        stopLoop();
+        setStatus("timeout", "TIME OUT");
+        updateButtons();
+        updateDisplay();
+        timeoutBeep();
+        speakTimeoutVoice();
+        return;
+      }
+
+      state.rafId = requestAnimationFrame(tick);
+    }
+
+    function addSeconds(amount) {
+      const base = state.running
+        ? Math.max(0, Math.ceil((state.endTime - Date.now()) / 1000))
+        : state.remainingSeconds;
+
+      const next = Math.max(0, base + amount);
+      state.remainingSeconds = next;
+      state.initialSeconds = Math.max(state.initialSeconds, next);
+
+      if (state.running) {
+        state.endTime = Date.now() + (next * 1000);
+      }
+
+      if (next > 0 && state.timeout) {
+        state.timeout = false;
+        setStatus("ready", "SIAP");
+      }
+
+      updateButtons();
+      updateDisplay();
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+          showToast("Mode fullscreen aktif");
+        } else {
+          await document.exitFullscreen();
+          showToast("Mode fullscreen keluar");
+        }
+      } catch {
+        showToast("Fullscreen tidak didukung browser ini");
+      }
+    }
+
+    function setSettingsOpen(open, { persist = true } = {}) {
+      const isOpen = Boolean(open);
+      els.settingsPanel.classList.toggle("open", isOpen);
+      els.panelOverlay.classList.toggle("show", isOpen);
+      els.mainGrid.classList.toggle("settings-collapsed", !isOpen);
+      els.settingsToggleBtn.setAttribute("aria-expanded", String(isOpen));
+      els.settingsToggleBtn.textContent = isOpen ? "⚙️ TUTUP PENGATURAN" : "⚙️ BUKA PENGATURAN";
+      if (persist) saveSettings();
+    }
+
+    function toggleSettings() {
+      setSettingsOpen(!els.settingsPanel.classList.contains("open"));
+    }
+
+    function bindEvents() {
+      els.settingsToggleBtn.addEventListener("click", toggleSettings);
+      els.settingsCloseBtn.addEventListener("click", () => setSettingsOpen(false));
+      els.panelOverlay.addEventListener("click", () => setSettingsOpen(false));
+
+      els.titleInput.addEventListener("input", updateTitle);
+
+      els.quickTitle.addEventListener("change", () => {
+        if (!els.quickTitle.value) return;
+        els.titleInput.value = els.quickTitle.value;
+        updateTitle();
+        showToast("Judul diperbarui");
+      });
+
+      [els.minutesInput, els.secondsInput].forEach((input) => {
+        input.addEventListener("input", () => {
+          if (input === els.secondsInput) {
+            els.secondsInput.value = toSafeNumber(els.secondsInput.value, 0, 59);
+          }
+          updatePresetActive();
+          saveSettings();
+        });
+
+        input.addEventListener("blur", () => {
+          getInputSeconds();
+          updatePresetActive();
+          saveSettings();
+        });
+      });
+
+      els.presetButtons.addEventListener("click", (event) => {
+        const button = event.target.closest(".preset-btn");
+        if (!button) return;
+
+        els.minutesInput.value = button.dataset.min;
+        els.secondsInput.value = button.dataset.sec;
+        setTimeFromInputs({ show: true });
+      });
+
+      els.setTimeBtn.addEventListener("click", () => setTimeFromInputs({ show: true }));
+      els.startBtn.addEventListener("click", startTimer);
+      els.pauseBtn.addEventListener("click", pauseTimer);
+      els.resetBtn.addEventListener("click", resetTimer);
+      els.fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+      els.soundToggleBtn.addEventListener("click", () => {
+        ensureAudio();
+        state.soundEnabled = !state.soundEnabled;
+        updateButtons();
+        saveSettings();
+        showToast(state.soundEnabled ? "Suara diaktifkan" : "Suara dimatikan");
+      });
+
+      els.testSoundBtn.addEventListener("click", () => {
+        ensureAudio();
+        if (!state.soundEnabled) {
+          state.soundEnabled = true;
+          updateButtons();
+          saveSettings();
+        }
+        warningBeep();
+        window.setTimeout(timeoutBeep, 650);
+        showToast("Tes bunyi berjalan");
+      });
+
+      els.warningSoundSelect.addEventListener("change", () => {
+        state.warningSound = els.warningSoundSelect.value;
+        saveSettings();
+        ensureAudio();
+        warningBeep();
+        showToast("Bunyi peringatan diganti");
+      });
+
+      els.timeoutSoundSelect.addEventListener("change", () => {
+        state.timeoutSound = els.timeoutSoundSelect.value;
+        saveSettings();
+        ensureAudio();
+        timeoutBeep();
+        showToast("Bunyi TIME OUT diganti");
+      });
+
+      els.testWarningSoundBtn.addEventListener("click", () => {
+        ensureAudio();
+        if (!state.soundEnabled) {
+          state.soundEnabled = true;
+          updateButtons();
+          saveSettings();
+        }
+        warningBeep();
+        showToast("Tes bunyi peringatan");
+      });
+
+      els.testTimeoutSoundBtn.addEventListener("click", () => {
+        ensureAudio();
+        if (!state.soundEnabled) {
+          state.soundEnabled = true;
+          updateButtons();
+          saveSettings();
+        }
+        timeoutBeep();
+        showToast("Tes bunyi TIME OUT");
+      });
+
+      els.testPremiumSoundBtn.addEventListener("click", () => {
+        ensureAudio();
+        if (!state.soundEnabled) {
+          state.soundEnabled = true;
+          updateButtons();
+          saveSettings();
+        }
+        playAlarm("premiumchime", "warning");
+        window.setTimeout(() => playAlarm("crystal", "warning"), 900);
+        window.setTimeout(() => playAlarm("futuristic", "warning"), 1700);
+        window.setTimeout(() => playAlarm("cinematic", "timeout"), 2700);
+        window.setTimeout(() => playAlarm("luxurygong", "timeout"), 5200);
+        showToast("Tes paket suara mewah berjalan");
+      });
+
+      els.voiceToggleBtn.addEventListener("click", () => {
+        state.voiceEnabled = !state.voiceEnabled;
+        updateButtons();
+        saveSettings();
+        if (state.voiceEnabled) {
+          speakVoice("Suara manusia diaktifkan", { repeat: 1 });
+        }
+        showToast(state.voiceEnabled ? "Voice diaktifkan" : "Voice dimatikan");
+      });
+
+      els.testVoiceBtn.addEventListener("click", () => {
+        state.voiceEnabled = true;
+        updateButtons();
+        saveSettings();
+        speakVoice((els.startVoiceInput.value || "Bersiap, waktu dimulai") + ". " + (els.timeoutVoiceInput.value || "Waktu Anda telah habis"), { repeat: 1 });
+        showToast("Tes suara manusia");
+      });
+
+      [els.startVoiceInput, els.timeoutVoiceInput].forEach((input) => {
+        input.addEventListener("input", () => {
+          state.startVoiceText = els.startVoiceInput.value.trim() || "Bersiap, waktu dimulai";
+          state.timeoutVoiceText = els.timeoutVoiceInput.value.trim() || "Waktu Anda telah habis";
+          saveSettings();
+        });
+      });
+
+      if ("speechSynthesis" in window && speechSynthesis.getVoices) {
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+      }
+
+      els.addMinuteBtn.addEventListener("click", () => {
+        addSeconds(60);
+        showToast("Ditambah 1 menit");
+      });
+
+      els.minusTenBtn.addEventListener("click", () => {
+        addSeconds(-10);
+        showToast("Dikurangi 10 detik");
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+        const typing = tag === "input" || tag === "select" || tag === "textarea";
+        if (typing) return;
+
+        if (event.code === "Space") {
+          event.preventDefault();
+          if (state.startingSequence) return;
+          if (state.running) pauseTimer();
+          else startTimer();
+        }
+
+        if (event.key.toLowerCase() === "r") {
+          resetTimer();
+        }
+
+        if (event.key.toLowerCase() === "f") {
+          toggleFullscreen();
+        }
+
+        if (event.key.toLowerCase() === "m") {
+          toggleSettings();
+        }
+
+        if (event.key === "Escape" && els.settingsPanel.classList.contains("open")) {
+          setSettingsOpen(false);
+        }
+      });
+
+      document.addEventListener("fullscreenchange", () => {
+        els.fullscreenBtn.textContent = document.fullscreenElement ? "KELUAR FULLSCREEN" : "FULLSCREEN";
+      });
+    }
+
+    function init() {
+      const saved = loadSettings();
+
+      els.titleInput.value = saved.title;
+      els.displayTitle.textContent = saved.title;
+      els.minutesInput.value = toSafeNumber(saved.minutes, 0, 999);
+      els.secondsInput.value = toSafeNumber(saved.seconds, 0, 59);
+      state.soundEnabled = Boolean(saved.soundEnabled);
+      state.warningSound = saved.warningSound || "beep";
+      state.timeoutSound = saved.timeoutSound || "siren";
+      state.voiceEnabled = saved.voiceEnabled !== false;
+      state.startVoiceText = saved.startVoiceText || "Bersiap, waktu dimulai";
+      state.timeoutVoiceText = saved.timeoutVoiceText || "Waktu Anda telah habis";
+      els.warningSoundSelect.value = state.warningSound;
+      els.timeoutSoundSelect.value = state.timeoutSound;
+      els.startVoiceInput.value = state.startVoiceText;
+      els.timeoutVoiceInput.value = state.timeoutVoiceText;
+
+      const settingsOpen = saved.settingsOpen !== false;
+      setSettingsOpen(settingsOpen, { persist: false });
+
+      const total = getInputSeconds() || 180;
+      state.initialSeconds = total;
+      state.remainingSeconds = total;
+
+      updatePresetActive();
+      updateButtons();
+      updateDisplay();
+      bindEvents();
+    }
+
+    init();
+  </script>
+</body>
+</html>
